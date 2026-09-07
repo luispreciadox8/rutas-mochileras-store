@@ -1,0 +1,51 @@
+[
+  {
+    "code": "RM-HOG-001",
+    "group": "HOGAR",
+    "description": "Lámpara LED Inteligente de Escritorio con Carga Inalámbrica y Ajuste de Luz.",
+    "price": 18.5,
+    "image": "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=500&auto=format&fit=crop&q=60"
+  },
+  {
+    "code": "RM-TEC-002",
+    "group": "TECNOLOGÍA",
+    "description": "Audífonos Bluetooth Inalámbricos HD con Cancelación Activa de Ruido.",
+    "price": 24.99,
+    "image": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&auto=format&fit=crop&q=60"
+  },
+  {
+    "code": "RM-BEL-003",
+    "group": "BELLEZA",
+    "description": "Cepillo Secador y Voluminizador Multifunción Iónico Profesional.",
+    "price": 22,
+    "image": "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=500&auto=format&fit=crop&q=60"
+  },
+  {
+    "code": "RM-MAS-004",
+    "group": "MASCOTAS",
+    "description": "Dispensador Portátil 2 en 1 de Agua y Alimento para Mascotas.",
+    "price": 9.99,
+    "image": "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=500&auto=format&fit=crop&q=60"
+  },
+  {
+    "code": "RM-CAM-005",
+    "group": "CAMPING",
+    "description": "Mochila Táctica de Resistencia 45L Impermeable para Senderismo y Viaje.",
+    "price": 38,
+    "image": "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500&auto=format&fit=crop&q=60"
+  },
+  {
+    "code": "RM-FIT-006",
+    "group": "FITNESS",
+    "description": "Set de 5 Bandas de Resistencia Multinivel para Entrenamiento Muscular.",
+    "price": 12.5,
+    "image": "https://images.unsplash.com/photo-1598289431512-b97b0917affc?w=500&auto=format&fit=crop&q=60"
+  },
+  {
+    "code": "RM-MAS-007",
+    "group": "Y MÁS",
+    "description": "Organizador Impermeable Estuche de Viaje Multiuso con Cierre.",
+    "price": 7.99,
+    "image": "https://images.unsplash.com/photo-1544816155-12df9643f363?w=500&auto=format&fit=crop&q=60"
+  }
+]

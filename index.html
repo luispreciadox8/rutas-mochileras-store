@@ -531,12 +531,23 @@
         </form>
 
         <!-- Tabla de Control de Inventario -->
-        <div class="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
-          <div class="flex justify-between items-center mb-3">
+        <div class="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 space-y-4">
+          <div class="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
+            <i data-lucide="info" class="w-4 h-4 shrink-0 text-amber-500 mt-0.5"></i>
+            <div>
+              <strong>💡 Sincronización Global con el Hosting:</strong> Para que los productos modificados aparezcan en <strong>todas las conexiones y dispositivos</strong> (GitHub Pages / Hosting estático), haz clic en <strong>'Exportar products.json'</strong> y reemplaza el archivo en tu proyecto antes de subirlo al hosting. Si usas el servidor Node (<code>server.js</code>), la actualización es automática.
+            </div>
+          </div>
+
+          <div class="flex flex-wrap justify-between items-center gap-2">
             <h4 class="text-sm font-bold text-slate-900 dark:text-white">Inventario de Productos (<span id="admin-product-count">0</span>)</h4>
             <div class="flex gap-2">
-              <button onclick="exportProductsBackup()" class="text-xs px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200">Exportar JSON</button>
-              <button onclick="document.getElementById('import-json-input').click()" class="text-xs px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200">Importar JSON</button>
+              <button onclick="exportProductsBackup()" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white shadow-sm flex items-center gap-1.5">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i> Exportar products.json
+              </button>
+              <button onclick="document.getElementById('import-json-input').click()" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center gap-1.5">
+                <i data-lucide="upload" class="w-3.5 h-3.5"></i> Importar JSON
+              </button>
               <input type="file" id="import-json-input" accept=".json" class="hidden" onchange="importProductsBackup(event)">
             </div>
           </div>
@@ -714,21 +725,55 @@
       }
     }
 
-    // Carga de productos desde LocalStorage o API
-    function loadProducts() {
-      const saved = localStorage.getItem('rm_products_db');
-      if (saved) {
-        try { products = JSON.parse(saved); } catch(e) { products = DEFAULT_PRODUCTS; }
-      } else {
-        products = DEFAULT_PRODUCTS;
-        saveProducts();
+    // Carga de productos desde Servidor API / products.json o LocalStorage
+    async function loadProducts() {
+      let loadedFromRemote = false;
+
+      try {
+        // 1. Intentar obtener inventario remoto desde /api/products (Node.js) o products.json (Hosting Estático)
+        const response = await fetch('/api/products').catch(() => fetch('products.json'));
+        if (response.ok) {
+          const remoteProducts = await response.json();
+          if (Array.isArray(remoteProducts) && remoteProducts.length > 0) {
+            products = remoteProducts;
+            localStorage.setItem('rm_products_db', JSON.stringify(products));
+            loadedFromRemote = true;
+          }
+        }
+      } catch (err) {
+        console.warn('No se pudo sincronizar con servidor/products.json, usando respaldo local:', err);
       }
+
+      // 2. Si falló la carga remota, recurrir a LocalStorage o DEFAULT_PRODUCTS
+      if (!loadedFromRemote) {
+        const saved = localStorage.getItem('rm_products_db');
+        if (saved) {
+          try { products = JSON.parse(saved); } catch(e) { products = DEFAULT_PRODUCTS; }
+        } else {
+          products = DEFAULT_PRODUCTS;
+          localStorage.setItem('rm_products_db', JSON.stringify(products));
+        }
+      }
+
+      renderCatalog();
+      renderAdminTable();
     }
 
-    function saveProducts() {
+    async function saveProducts() {
       localStorage.setItem('rm_products_db', JSON.stringify(products));
       renderCatalog();
       renderAdminTable();
+
+      // Sincronizar en segundo plano con el backend Express si está disponible
+      try {
+        await fetch('/api/products/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(products)
+        });
+      } catch (e) {
+        // En hosting estático sin servidor Node activo, la persistencia global se logra actualizando products.json
+      }
     }
 
     // Render de Categorías
@@ -1103,7 +1148,7 @@
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(products, null, 2));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `rutas_mochileras_inventario_${new Date().toISOString().slice(0,10)}.json`);
+      downloadAnchor.setAttribute("download", `products.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();

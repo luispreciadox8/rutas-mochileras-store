@@ -44,18 +44,27 @@ app.get('/api/products', (req, res) => {
   res.json(getProducts());
 });
 
+app.post('/api/products/bulk', (req, res) => {
+  const products = req.body;
+  if (!Array.isArray(products)) {
+    return res.status(400).json({ error: 'Se requiere un arreglo de productos' });
+  }
+  saveProducts(products);
+  res.json({ message: 'Inventario actualizado con éxito', count: products.length });
+});
+
 app.post('/api/products', upload.single('image'), (req, res) => {
-  const { code, group, price, description } = req.body;
+  const { code, group, price, description, image } = req.body;
   if (!code || !group || !price || !description) {
     return res.status(400).json({ error: 'Faltan campos obligatorios' });
   }
 
   const products = getProducts();
-  if (products.some(p => p.code === code)) {
+  if (products.some(p => p.code === code.toUpperCase())) {
     return res.status(400).json({ error: 'El código de producto ya existe' });
   }
 
-  const imageUrl = req.file ? `/uploads/${req.file.filename}` : '/logo.jpg';
+  const imageUrl = req.file ? `/uploads/${req.file.filename}` : (image || 'https://images.unsplash.com/photo-1544816155-12df9643f363?w=500&auto=format&fit=crop&q=60');
 
   const newProduct = {
     code: code.toUpperCase(),
@@ -73,10 +82,10 @@ app.post('/api/products', upload.single('image'), (req, res) => {
 
 app.put('/api/products/:code', upload.single('image'), (req, res) => {
   const { code } = req.params;
-  const { group, price, description } = req.body;
+  const { group, price, description, image } = req.body;
   const products = getProducts();
 
-  const idx = products.findIndex(p => p.code === code);
+  const idx = products.findIndex(p => p.code.toUpperCase() === code.toUpperCase());
   if (idx === -1) {
     return res.status(404).json({ error: 'Producto no encontrado' });
   }
@@ -84,7 +93,11 @@ app.put('/api/products/:code', upload.single('image'), (req, res) => {
   if (group) products[idx].group = group;
   if (price) products[idx].price = parseFloat(price);
   if (description) products[idx].description = description;
-  if (req.file) products[idx].image = `/uploads/${req.file.filename}`;
+  if (req.file) {
+    products[idx].image = `/uploads/${req.file.filename}`;
+  } else if (image) {
+    products[idx].image = image;
+  }
 
   saveProducts(products);
   res.json(products[idx]);
@@ -93,7 +106,7 @@ app.put('/api/products/:code', upload.single('image'), (req, res) => {
 app.delete('/api/products/:code', (req, res) => {
   const { code } = req.params;
   let products = getProducts();
-  products = products.filter(p => p.code !== code);
+  products = products.filter(p => p.code.toUpperCase() !== code.toUpperCase());
   saveProducts(products);
   res.json({ message: 'Producto eliminado' });
 });
