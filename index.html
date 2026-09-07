@@ -1073,7 +1073,7 @@
       reader.readAsDataURL(file);
     }
 
-    function handleProductFormSubmit(e) {
+    async function handleProductFormSubmit(e) {
       e.preventDefault();
 
       const editIndex = parseInt(document.getElementById('form-edit-index').value);
@@ -1082,22 +1082,68 @@
       const price = parseFloat(document.getElementById('form-price').value);
       const description = document.getElementById('form-desc').value.trim();
       let image = document.getElementById('form-image-base64').value;
+      const fileInput = document.getElementById('form-image-file');
 
-      if (!image) {
+      if (!image && (!fileInput.files || !fileInput.files[0])) {
         image = 'https://images.unsplash.com/photo-1544816155-12df9643f363?w=500&auto=format&fit=crop&q=60';
       }
 
-      const newProduct = { code, group, price, description, image };
+      let savedProduct = null;
+      let apiSuccess = false;
+
+      try {
+        let response;
+        if (fileInput.files && fileInput.files[0]) {
+          const formData = new FormData();
+          formData.append('code', code);
+          formData.append('group', group);
+          formData.append('price', price);
+          formData.append('description', description);
+          formData.append('image', fileInput.files[0]);
+
+          const endpoint = editIndex >= 0 ? `/api/products/${code}` : '/api/products';
+          const method = editIndex >= 0 ? 'PUT' : 'POST';
+
+          response = await fetch(endpoint, { method, body: formData });
+        } else {
+          const endpoint = editIndex >= 0 ? `/api/products/${code}` : '/api/products';
+          const method = editIndex >= 0 ? 'PUT' : 'POST';
+
+          response = await fetch(endpoint, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, group, price, description, image })
+          });
+        }
+
+        if (response.ok) {
+          savedProduct = await response.json();
+          apiSuccess = true;
+        } else {
+          const errData = await response.json().catch(() => ({ error: 'Error inesperado del servidor' }));
+          alert(`⚠️ Error al guardar en el servidor Node: ${errData.error || 'Respuesta inválida'}`);
+        }
+      } catch (err) {
+        console.warn('No se pudo conectar con el servidor Node API:', err);
+      }
+
+      const productObj = savedProduct || { code, group, price, description, image };
 
       if (editIndex >= 0) {
-        products[editIndex] = newProduct;
+        products[editIndex] = productObj;
         alert(`Producto ${code} modificado con éxito.`);
       } else {
-        if (products.some(p => p.code === code)) {
+        if (!apiSuccess && products.some(p => p.code === code)) {
           alert(`El código ${code} ya existe. Por favor utiliza otro código.`);
           return;
         }
-        products.unshift(newProduct);
+        if (apiSuccess) {
+          const existingIdx = products.findIndex(p => p.code === code);
+          if (existingIdx >= 0) products[existingIdx] = productObj;
+          else products.unshift(productObj);
+        } else {
+          products.unshift(productObj);
+        }
         alert(`Producto ${code} guardado exitosamente.`);
       }
 
@@ -1106,13 +1152,23 @@
       renderAdminTable();
     }
 
-    function deleteProduct(index) {
+    async function deleteProduct(index) {
       const p = products[index];
-      if (confirm(`¿Está seguro de eliminar el producto ${p.code}?`)) {
-        products.splice(index, 1);
-        saveProducts();
-        renderAdminTable();
+      if (!confirm(`¿Está seguro de eliminar el producto ${p.code}?`)) return;
+
+      try {
+        const res = await fetch(`/api/products/${p.code}`, { method: 'DELETE' });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          console.warn('Aviso al eliminar en servidor:', errData.error);
+        }
+      } catch (e) {
+        console.warn('Error al conectar con servidor para eliminar:', e);
       }
+
+      products.splice(index, 1);
+      saveProducts();
+      renderAdminTable();
     }
 
     function renderAdminTable() {
